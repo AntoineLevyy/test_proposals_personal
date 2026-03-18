@@ -6,7 +6,6 @@ interface RouteParams {
   params: Promise<{ slug: string }>
 }
 
-// GET /api/proposals/[slug]
 export async function GET(_req: NextRequest, { params }: RouteParams) {
   const { slug } = await params
   try {
@@ -19,7 +18,6 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   }
 }
 
-// PUT /api/proposals/[slug]
 export async function PUT(req: NextRequest, { params }: RouteParams) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -27,6 +25,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
   const { slug } = await params
   try {
     const body = await req.json()
+    const steps = body.steps ?? []
+
     const [proposal] = await sql`
       UPDATE proposals SET
         test_name = ${body.test_name ?? ''},
@@ -37,29 +37,17 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         exit_rules = ${body.exit_rules ?? ''},
         primary_goal = ${body.primary_goal ?? ''},
         secondary_goals = ${body.secondary_goals ?? ''},
-        step_message = ${body.step_message ?? ''},
-        template_name = ${body.template_name ?? ''},
-        send_timing = ${body.send_timing ?? ''},
-        primary_kpi = ${body.primary_kpi ?? ''},
-        secondary_kpis = ${body.secondary_kpis ?? ''},
-        guardrails = ${body.guardrails ?? ''},
         test_direction = ${body.test_direction ?? ''},
         test_hypothesis = ${body.test_hypothesis ?? ''},
         hypothesis_reasons = ${body.hypothesis_reasons ?? ''},
         hypothesis_exclusion = ${body.hypothesis_exclusion ?? ''},
-        seg_1 = ${body.seg_1 ?? ''},
-        seg_2 = ${body.seg_2 ?? ''},
-        seg_3 = ${body.seg_3 ?? ''},
         expected_learning_1 = ${body.expected_learning_1 ?? ''},
         expected_learning_2 = ${body.expected_learning_2 ?? ''},
         expected_learning_3 = ${body.expected_learning_3 ?? ''},
         next_test_1 = ${body.next_test_1 ?? ''},
         next_test_2 = ${body.next_test_2 ?? ''},
         next_test_3 = ${body.next_test_3 ?? ''},
-        strategic_angle = ${body.strategic_angle ?? ''},
-        claims = ${body.claims ?? ''},
-        proof_assets = ${body.proof_assets ?? ''},
-        message_structure = ${body.message_structure ?? ''},
+        steps = ${JSON.stringify(steps)},
         updated_at = NOW()
       WHERE slug = ${slug}
       RETURNING *
@@ -72,7 +60,6 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/proposals/[slug]
 export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

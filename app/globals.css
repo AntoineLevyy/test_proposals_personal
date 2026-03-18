@@ -786,6 +786,193 @@ html, body {
 }
 
 /* =========================================
+   Steps Section
+   ========================================= */
+.steps-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.steps-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.steps-section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--beige-text);
+  margin: 0 0 4px;
+}
+
+.steps-section-subtitle {
+  font-size: 0.85rem;
+  color: var(--beige-text-sec);
+  margin: 0;
+}
+
+.btn-add-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(26,82,240,0.08);
+  color: var(--nb-blue);
+  border: 1px dashed rgba(26,82,240,0.3);
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font-main);
+  white-space: nowrap;
+}
+
+.btn-add-step svg {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-add-step:hover {
+  background: rgba(26,82,240,0.14);
+  border-color: rgba(26,82,240,0.5);
+}
+
+.btn-add-step-bottom {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Individual step card */
+.step-card {
+  background: var(--beige-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--beige-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(12,22,40,0.06);
+  transition: var(--transition);
+}
+
+.step-card:hover {
+  border-color: rgba(12,22,40,0.15);
+  box-shadow: 0 8px 32px rgba(12,22,40,0.09);
+}
+
+.step-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px;
+  background: var(--navy);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6);
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-label-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-family: var(--font-main);
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+  padding: 0;
+  min-width: 0;
+}
+
+.step-label-input::placeholder {
+  color: rgba(255,255,255,0.3);
+}
+
+.step-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.35);
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.step-remove-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.step-remove-btn:hover {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.4);
+  color: #f87171;
+}
+
+.step-card-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-section {
+  padding: 22px 28px;
+  border-bottom: 1px solid var(--beige-border);
+}
+
+.step-section:last-child {
+  border-bottom: none;
+}
+
+.step-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--beige-text-sec);
+  margin-bottom: 16px;
+}
+
+.step-section-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-blue { background: #3B82F6; }
+.dot-green { background: #10B981; }
+.dot-purple { background: #8B5CF6; }
+
+/* =========================================
    Responsive
    ========================================= */
 @media (max-width: 640px) {
@@ -795,4 +982,6 @@ html, body {
   .form-row-2 { grid-template-columns: 1fr; }
   .proposal-page-title { font-size: 1.6rem; }
   .test-name-input { font-size: 1.4rem; }
+  .steps-section-header { flex-direction: column; }
 }
+
