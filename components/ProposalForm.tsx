@@ -277,11 +277,38 @@ export default function ProposalForm({
             </div>
           </div>
 
+          {/* Section 3: Results & Learning */}
+          <div className="form-card">
+            <div className="form-card-header">
+              <div className="form-card-icon icon-teal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+              </div>
+              <h2 className="form-card-title">3. Results &amp; Learning Capture</h2>
+            </div>
+            <div className="form-fields">
+              <div className="form-subheader">Expected Learnings</div>
+              <div className="form-row-2">
+                <Field label="Learning 1" placeholder="Expected Learning 1" value={data.expected_learning_1} onChange={set('expected_learning_1')} />
+                <Field label="Learning 2" placeholder="Expected Learning 2" value={data.expected_learning_2} onChange={set('expected_learning_2')} />
+              </div>
+              <Field label="Learning 3" placeholder="Expected Learning 3" optional value={data.expected_learning_3} onChange={set('expected_learning_3')} />
+              <div className="form-subheader">Next Test Proposals</div>
+              <div className="form-row-2">
+                <Field label="Follow-up Test 1" placeholder="Follow-up test idea" value={data.next_test_1} onChange={set('next_test_1')} />
+                <Field label="Follow-up Test 2" placeholder="Follow-up test idea" value={data.next_test_2} onChange={set('next_test_2')} />
+              </div>
+              <Field label="Follow-up Test 3" placeholder="Follow-up test idea" optional value={data.next_test_3} onChange={set('next_test_3')} />
+            </div>
+          </div>
+
           {/* Steps — repeatable: Message Spec + Personalization + Creative Strategy */}
           <div className="steps-section">
             <div className="steps-section-header">
               <div>
-                <h2 className="steps-section-title">3. Message Steps</h2>
+                <h2 className="steps-section-title">4. Message Steps</h2>
                 <p className="steps-section-subtitle">Add a step for each email, push, or SMS in the flow</p>
               </div>
               <button className="btn-add-step" onClick={addStep}>
@@ -371,33 +398,6 @@ export default function ProposalForm({
             <button className="btn-add-step btn-add-step-bottom" onClick={addStep}>
               <PlusIcon /> Add Another Step
             </button>
-          </div>
-
-          {/* Section 5: Results & Learning */}
-          <div className="form-card">
-            <div className="form-card-header">
-              <div className="form-card-icon icon-teal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                </svg>
-              </div>
-              <h2 className="form-card-title">4. Results &amp; Learning Capture</h2>
-            </div>
-            <div className="form-fields">
-              <div className="form-subheader">Expected Learnings</div>
-              <div className="form-row-2">
-                <Field label="Learning 1" placeholder="Expected Learning 1" value={data.expected_learning_1} onChange={set('expected_learning_1')} />
-                <Field label="Learning 2" placeholder="Expected Learning 2" value={data.expected_learning_2} onChange={set('expected_learning_2')} />
-              </div>
-              <Field label="Learning 3" placeholder="Expected Learning 3" optional value={data.expected_learning_3} onChange={set('expected_learning_3')} />
-              <div className="form-subheader">Next Test Proposals</div>
-              <div className="form-row-2">
-                <Field label="Follow-up Test 1" placeholder="Follow-up test idea" value={data.next_test_1} onChange={set('next_test_1')} />
-                <Field label="Follow-up Test 2" placeholder="Follow-up test idea" value={data.next_test_2} onChange={set('next_test_2')} />
-              </div>
-              <Field label="Follow-up Test 3" placeholder="Follow-up test idea" optional value={data.next_test_3} onChange={set('next_test_3')} />
-            </div>
           </div>
 
           {/* Bottom save */}
