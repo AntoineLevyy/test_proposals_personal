@@ -1145,6 +1145,60 @@ html, body {
   color: #ef4444;
 }
 
+/* Segmentation pair (variable + creative specificity) */
+.seg-pair {
+  background: rgba(16,185,129,0.03);
+  border: 1px solid rgba(16,185,129,0.12);
+  border-radius: var(--radius-input);
+  padding: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.seg-pair-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+/* Form description text */
+.form-description {
+  font-size: 0.83rem;
+  color: var(--beige-text-sec);
+  margin: -4px 0 8px;
+  line-height: 1.5;
+}
+
+.form-description-sm {
+  font-size: 0.78rem;
+  color: var(--beige-text-muted);
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+
+/* Download markdown button */
+.btn-download-md {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--beige-text-sec);
+  border: 1px solid var(--beige-border);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font-main);
+}
+
+.btn-download-md:hover {
+  background: rgba(12,22,40,0.06);
+  border-color: rgba(12,22,40,0.2);
+  color: var(--beige-text);
+}
+
 /* =========================================
    Responsive
    ========================================= */

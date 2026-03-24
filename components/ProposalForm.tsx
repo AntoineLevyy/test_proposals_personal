@@ -19,32 +19,46 @@ const EMPTY_CREATIVE: CreativeEntries = {
   h1: '', subject: '', preview: '', body: '', cta: '', cta_url: '',
 }
 
+interface Segmentation {
+  variable: string
+  creative_specificity: string
+}
+
+const EMPTY_SEG: Segmentation = { variable: '', creative_specificity: '' }
+
 export interface Step {
   id: string
   label: string
-  // Message Spec
-  template_name: string
-  guardrails: string
-  // Personalization — dynamic array
-  segmentations: string[]
   // Creative Strategy
-  strategic_angle: string
+  creative_strategy: string
   detailed_creative_direction: string
+  // Personalization — dynamic array of { variable, creative_specificity }
+  segmentations: Segmentation[]
   creative_entries: CreativeEntries
   // Rules
   rules: string[]
+  // Legacy fields kept for migration
+  template_name?: string
+  guardrails?: string
+  strategic_angle?: string
 }
 
 const EMPTY_STEP: Omit<Step, 'id' | 'label'> = {
-  template_name: '', guardrails: '',
-  segmentations: [''],
-  strategic_angle: '', detailed_creative_direction: '',
+  creative_strategy: '', detailed_creative_direction: '',
+  segmentations: [{ ...EMPTY_SEG }],
   creative_entries: { ...EMPTY_CREATIVE },
   rules: [''],
 }
 
 function newStep(index: number): Step {
-  return { id: crypto.randomUUID(), label: `Message ${index + 1}`, ...EMPTY_STEP, segmentations: [''], creative_entries: { ...EMPTY_CREATIVE }, rules: [''] }
+  return {
+    id: crypto.randomUUID(),
+    label: `Message ${index + 1}`,
+    ...EMPTY_STEP,
+    segmentations: [{ ...EMPTY_SEG }],
+    creative_entries: { ...EMPTY_CREATIVE },
+    rules: [''],
+  }
 }
 
 interface ProposalFormProps {
@@ -75,15 +89,16 @@ function Field({ label, placeholder, optional, value, onChange }: FieldProps) {
 }
 
 interface TextAreaProps {
-  label: string; placeholder?: string; optional?: boolean
+  label: string; placeholder?: string; optional?: boolean; description?: string
   value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
 }
-function TextArea({ label, placeholder, optional, value, onChange }: TextAreaProps) {
+function TextArea({ label, placeholder, optional, description, value, onChange }: TextAreaProps) {
   return (
     <div className="form-group">
       <label className="form-label">
         {label}{optional && <span className="optional">(optional)</span>}
       </label>
+      {description && <p className="form-description">{description}</p>}
       <textarea className="form-textarea" placeholder={placeholder} value={value} onChange={onChange} />
     </div>
   )
@@ -119,6 +134,16 @@ function PlusIcon() {
     <path d="M12 5v14M5 12h14"/>
   </svg>
 }
+function CopyIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+  </svg>
+}
+function DownloadIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+}
 function ChevronIcon({ open }: { open: boolean }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
     style={{ width: 16, height: 16, transition: 'transform 0.2s', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>
@@ -128,16 +153,15 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 // ─── Collapsible Section ──────────────────────────────────────────────────────
 
-function CollapsibleCard({ title, icon, iconClass, children, defaultOpen = false, optional = false }: {
-  title: string; icon: React.ReactNode; iconClass: string; children: React.ReactNode; defaultOpen?: boolean; optional?: boolean
+function CollapsibleCard({ title, icon, iconClass, children, defaultOpen = false }: {
+  title: string; icon: React.ReactNode; iconClass: string; children: React.ReactNode; defaultOpen?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className={`form-card ${optional && !open ? 'form-card-optional' : ''}`}>
+    <div className="form-card">
       <div className="form-card-header form-card-header-clickable" onClick={() => setOpen(o => !o)}>
         <div className={`form-card-icon ${iconClass}`}>{icon}</div>
         <h2 className="form-card-title">{title}</h2>
-        {optional && <span className="optional-badge">Optional</span>}
         <div style={{ marginLeft: 'auto' }}><ChevronIcon open={open} /></div>
       </div>
       {open && <div className="form-fields">{children}</div>}
@@ -145,33 +169,69 @@ function CollapsibleCard({ title, icon, iconClass, children, defaultOpen = false
   )
 }
 
-// ─── Step Collapsible Section ──────────────────────────────────────────────────
+// ─── Markdown export ──────────────────────────────────────────────────────────
 
-function StepCollapsible({ label, dotClass, optional = false, children }: {
-  label: string; dotClass: string; optional?: boolean; children: React.ReactNode
-}) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className={`step-section ${!open ? 'step-section-collapsed' : ''}`}>
-      <div className="step-section-label step-section-label-clickable" onClick={() => setOpen(o => !o)}>
-        <span className={`step-section-dot ${dotClass}`} />
-        {label}
-        {optional && <span className="optional-badge">Optional</span>}
-        <div style={{ marginLeft: 'auto' }}><ChevronIcon open={open} /></div>
-      </div>
-      {open && children}
-    </div>
-  )
+function generateMarkdown(data: Record<string, string>, steps: Step[]): string {
+  let md = `# ${data.test_name || 'Untitled Proposal'}\n\n`
+
+  if (data.flow_name || data.canvas_link || data.primary_goal) {
+    md += `## Flow Details\n`
+    if (data.flow_name) md += `- **Flow Name:** ${data.flow_name}\n`
+    if (data.canvas_link) md += `- **Canvas Link:** ${data.canvas_link}\n`
+    if (data.primary_goal) md += `- **Primary Goal:** ${data.primary_goal}\n`
+    if (data.secondary_goals) md += `- **Secondary Goals:** ${data.secondary_goals}\n`
+    md += `\n`
+  }
+
+  if (data.test_direction || data.test_hypothesis) {
+    md += `## Testing Goals\n`
+    if (data.test_direction) md += `**Overall Test Direction:** ${data.test_direction}\n\n`
+    if (data.test_hypothesis) md += `**Test Hypothesis:** ${data.test_hypothesis}\n\n`
+  }
+
+  md += `## Creative Strategy\n\n`
+  steps.forEach((step, i) => {
+    md += `### ${step.label || `Message ${i + 1}`}\n\n`
+    if (step.creative_strategy) md += `**Creative Strategy:** ${step.creative_strategy}\n\n`
+    if (step.detailed_creative_direction) md += `**Detailed Creative Direction:** ${step.detailed_creative_direction}\n\n`
+
+    if (step.segmentations.some(s => s.variable || s.creative_specificity)) {
+      md += `**Personalization Strategy:**\n`
+      step.segmentations.forEach((seg, si) => {
+        if (seg.variable || seg.creative_specificity) {
+          md += `- Seg ${si + 1}: **${seg.variable}** — ${seg.creative_specificity}\n`
+        }
+      })
+      md += `\n`
+    }
+
+    const ce = step.creative_entries
+    if (ce.subject || ce.preview || ce.h1 || ce.body || ce.cta) {
+      md += `**Creative Entries:**\n`
+      if (ce.subject) md += `- **Subject Direction:** ${ce.subject}\n`
+      if (ce.preview) md += `- **Preview Direction:** ${ce.preview}\n`
+      if (ce.h1) md += `- **H1 Direction:** ${ce.h1}\n`
+      if (ce.body) md += `- **Body:** ${ce.body}\n`
+      if (ce.cta) md += `- **CTA Direction:** ${ce.cta}\n`
+      if (ce.cta_url) md += `- **CTA URL:** ${ce.cta_url}\n`
+      md += `\n`
+    }
+
+    if (step.rules.some(r => r.trim())) {
+      md += `**Rules:**\n`
+      step.rules.forEach((r, ri) => { if (r.trim()) md += `- Rule ${ri + 1}: ${r}\n` })
+      md += `\n`
+    }
+  })
+
+  return md
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const PROPOSAL_FIELDS = [
-  'test_name', 'flow_name', 'canvas_link', 'entry_trigger', 'entry_rules', 'exit_rules',
+  'test_name', 'flow_name', 'canvas_link',
   'primary_goal', 'secondary_goals', 'test_direction', 'test_hypothesis',
-  'hypothesis_reasons', 'hypothesis_exclusion',
-  'expected_learning_1', 'expected_learning_2', 'expected_learning_3',
-  'next_test_1', 'next_test_2', 'next_test_3',
 ]
 
 type ProposalData = Record<string, string>
@@ -188,15 +248,24 @@ export default function ProposalForm({
   const [steps, setSteps] = useState<Step[]>(() => {
     const raw = initialData.steps
     if (Array.isArray(raw) && raw.length > 0) {
-      // Migrate old steps that don't have new fields
       return (raw as Record<string, unknown>[]).map(s => {
         const old = s as Record<string, unknown>
-        const segs = (old.segmentations as string[]) ||
-          [old.seg_1 as string || '', old.seg_2 as string || '', old.seg_3 as string || ''].filter(Boolean)
+        // Migrate segmentations from old format
+        let segs: Segmentation[] = []
+        if (Array.isArray(old.segmentations) && old.segmentations.length > 0) {
+          if (typeof old.segmentations[0] === 'string') {
+            segs = (old.segmentations as string[]).filter(Boolean).map(v => ({ variable: v, creative_specificity: '' }))
+          } else {
+            segs = old.segmentations as Segmentation[]
+          }
+        }
+        if (segs.length === 0) segs = [{ ...EMPTY_SEG }]
+
         return {
           ...newStep(0),
           ...s,
-          segmentations: segs.length > 0 ? segs : [''],
+          creative_strategy: (old.creative_strategy as string) || (old.strategic_angle as string) || '',
+          segmentations: segs,
           creative_entries: (old.creative_entries as CreativeEntries) || { ...EMPTY_CREATIVE },
           detailed_creative_direction: (old.detailed_creative_direction as string) || '',
           rules: (old.rules as string[]) || [''],
@@ -220,32 +289,41 @@ export default function ProposalForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => setSteps((prev) => prev.map((s) => s.id === id ? { ...s, creative_entries: { ...s.creative_entries, [key]: e.target.value } } : s)), [])
 
+  // Segmentation helpers
   const addSegmentation = (id: string) => setSteps(prev => prev.map(s =>
-    s.id === id ? { ...s, segmentations: [...s.segmentations, ''] } : s
+    s.id === id ? { ...s, segmentations: [...s.segmentations, { ...EMPTY_SEG }] } : s
   ))
-
-  const updateSegmentation = (id: string, index: number, value: string) => setSteps(prev => prev.map(s =>
-    s.id === id ? { ...s, segmentations: s.segmentations.map((seg, i) => i === index ? value : seg) } : s
+  const updateSeg = (id: string, index: number, field: keyof Segmentation, value: string) => setSteps(prev => prev.map(s =>
+    s.id === id ? { ...s, segmentations: s.segmentations.map((seg, i) => i === index ? { ...seg, [field]: value } : seg) } : s
   ))
-
   const removeSegmentation = (id: string, index: number) => setSteps(prev => prev.map(s =>
     s.id === id ? { ...s, segmentations: s.segmentations.filter((_, i) => i !== index) } : s
   ))
 
+  // Rule helpers
   const addRule = (id: string) => setSteps(prev => prev.map(s =>
     s.id === id ? { ...s, rules: [...s.rules, ''] } : s
   ))
-
   const updateRule = (id: string, index: number, value: string) => setSteps(prev => prev.map(s =>
     s.id === id ? { ...s, rules: s.rules.map((r, i) => i === index ? value : r) } : s
   ))
-
   const removeRule = (id: string, index: number) => setSteps(prev => prev.map(s =>
     s.id === id ? { ...s, rules: s.rules.filter((_, i) => i !== index) } : s
   ))
 
+  // Step management
   const addStep = () => {
     setSteps(prev => [...prev, newStep(prev.length)])
+    setActiveStepIndex(steps.length)
+  }
+  const duplicateStep = () => {
+    if (!activeStep) return
+    const dup: Step = {
+      ...JSON.parse(JSON.stringify(activeStep)),
+      id: crypto.randomUUID(),
+      label: `${activeStep.label} (copy)`,
+    }
+    setSteps(prev => [...prev, dup])
     setActiveStepIndex(steps.length)
   }
   const removeStep = (id: string) => {
@@ -257,6 +335,17 @@ export default function ProposalForm({
 
   function handleSave() {
     onSave({ ...data, steps })
+  }
+
+  function handleDownloadMarkdown() {
+    const md = generateMarkdown(data, steps)
+    const blob = new Blob([md], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${slug || 'proposal'}.md`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const activeStep = steps[activeStepIndex] || steps[0]
@@ -290,6 +379,9 @@ export default function ProposalForm({
                 <TrashIcon />
               </button>
             )}
+            <button className="btn-download-md" onClick={handleDownloadMarkdown} title="Download as Markdown">
+              <DownloadIcon /> Download .md
+            </button>
             <button className="btn-save" onClick={handleSave} disabled={saving}>
               <SaveIcon />{saving ? 'Saving…' : 'Save Proposal'}
             </button>
@@ -314,23 +406,16 @@ export default function ProposalForm({
             {slug && <div className="test-name-slug">/{slug}</div>}
           </div>
 
-          {/* Section 1: Flow Details — collapsible */}
+          {/* Section 1: Flow Details — collapsible, no triggers/rules */}
           <CollapsibleCard
             title="1. Flow Details"
             iconClass="icon-navy"
-            optional
             icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>}
           >
             <div className="form-row-2">
               <Field label="Flow Name" placeholder="e.g., Behavior-Based Welcome Series" value={data.flow_name} onChange={set('flow_name')} />
               <Field label="Canvas Link" placeholder="https://canvas.neonblue.app/…" value={data.canvas_link} onChange={set('canvas_link')} />
             </div>
-            <div className="form-subheader">Triggers &amp; Rules</div>
-            <div className="form-row-2">
-              <Field label="Entry Trigger" placeholder="Event / property / segment join" value={data.entry_trigger} onChange={set('entry_trigger')} />
-              <Field label="Entry Rules" placeholder="Eligibility, exclusions, cooldowns…" value={data.entry_rules} onChange={set('entry_rules')} />
-            </div>
-            <Field label="Exit Rules" placeholder="What removes them from the flow" value={data.exit_rules} onChange={set('exit_rules')} />
             <div className="form-subheader">Flow Goals</div>
             <div className="form-row-2">
               <Field label="Primary Goal" placeholder="Primary objective" value={data.primary_goal} onChange={set('primary_goal')} />
@@ -338,45 +423,20 @@ export default function ProposalForm({
             </div>
           </CollapsibleCard>
 
-          {/* Section 2: Testing Goals — collapsible */}
+          {/* Section 2: Testing Goals — not optional, not greyed */}
           <CollapsibleCard
             title="2. Testing Goals"
             iconClass="icon-purple"
-            optional
+            defaultOpen
             icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>}
           >
             <div className="form-row-2">
               <TextArea label="Overall Test Direction" placeholder="What is the theme of this test?" value={data.test_direction} onChange={set('test_direction')} />
               <TextArea label="Test Hypothesis" placeholder="What exactly are we trying to test?" value={data.test_hypothesis} onChange={set('test_hypothesis')} />
             </div>
-            <div className="form-row-2">
-              <TextArea label="Hypothesis Reasons" placeholder="What in previous tests informs this hypothesis?" value={data.hypothesis_reasons} onChange={set('hypothesis_reasons')} />
-              <TextArea label="Hypothesis Exclusion" placeholder="What could be misinterpreted?" optional value={data.hypothesis_exclusion} onChange={set('hypothesis_exclusion')} />
-            </div>
           </CollapsibleCard>
 
-          {/* Section 3: Results & Learning — collapsible */}
-          <CollapsibleCard
-            title="3. Results & Learning Capture"
-            iconClass="icon-teal"
-            optional
-            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>}
-          >
-            <div className="form-subheader">Expected Learnings</div>
-            <div className="form-row-2">
-              <Field label="Learning 1" placeholder="Expected Learning 1" value={data.expected_learning_1} onChange={set('expected_learning_1')} />
-              <Field label="Learning 2" placeholder="Expected Learning 2" value={data.expected_learning_2} onChange={set('expected_learning_2')} />
-            </div>
-            <Field label="Learning 3" placeholder="Expected Learning 3" optional value={data.expected_learning_3} onChange={set('expected_learning_3')} />
-            <div className="form-subheader">Next Test Proposals</div>
-            <div className="form-row-2">
-              <Field label="Follow-up Test 1" placeholder="Follow-up test idea" value={data.next_test_1} onChange={set('next_test_1')} />
-              <Field label="Follow-up Test 2" placeholder="Follow-up test idea" value={data.next_test_2} onChange={set('next_test_2')} />
-            </div>
-            <Field label="Follow-up Test 3" placeholder="Follow-up test idea" optional value={data.next_test_3} onChange={set('next_test_3')} />
-          </CollapsibleCard>
-
-          {/* Section 4: Creative Strategy — wraps message steps */}
+          {/* Section 3: Creative Strategy */}
           <div className="form-card creative-strategy-card">
             <div className="form-card-header">
               <div className="form-card-icon icon-purple">
@@ -384,15 +444,20 @@ export default function ProposalForm({
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                 </svg>
               </div>
-              <h2 className="form-card-title">4. Creative Strategy</h2>
+              <h2 className="form-card-title">3. Creative Strategy</h2>
             </div>
 
             <div className="steps-section">
               <div className="steps-section-header">
                 <p className="steps-section-subtitle">Add a message for each email, push, or SMS in the flow</p>
-                <button className="btn-add-step" onClick={addStep}>
-                  <PlusIcon /> Add Message
-                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn-add-step" onClick={duplicateStep} title="Duplicate current message">
+                    <CopyIcon /> Duplicate
+                  </button>
+                  <button className="btn-add-step" onClick={addStep}>
+                    <PlusIcon /> Add Message
+                  </button>
+                </div>
               </div>
 
               {/* Step tabs */}
@@ -429,38 +494,43 @@ export default function ProposalForm({
                   </div>
 
                   <div className="step-card-body">
-                    {/* Message Spec — optional, collapsible */}
-                    <StepCollapsible label="Message Spec" dotClass="dot-blue" optional>
-                      <div className="form-fields">
-                        <Field label="Template" placeholder="Klaviyo/Braze template name" value={activeStep.template_name} onChange={setStep(activeStep.id, 'template_name')} />
-                        <Field label="Guardrails" placeholder="Unsubscribes, churn signals, CS tickets…" value={activeStep.guardrails} onChange={setStep(activeStep.id, 'guardrails')} />
-                      </div>
-                    </StepCollapsible>
-
                     <div className="step-section">
                       <div className="form-fields">
                         <div className="form-subheader">Strategic Direction</div>
-                        <TextArea label="Strategic Angle" placeholder="e.g. Problem/Solution, Education, Premium, Social proof…" value={activeStep.strategic_angle} onChange={setStep(activeStep.id, 'strategic_angle')} />
+                        <TextArea
+                          label="Creative Strategy"
+                          description="Create urgency around trial ending while providing clear next-step options (auto-renew full-size, sizing guidance, product exploration). Use social proof through testimonials. Introduce complementary products as additional purchase opportunities."
+                          placeholder="e.g., Trial Conversion with Social Proof & Product Expansion"
+                          value={activeStep.creative_strategy}
+                          onChange={setStep(activeStep.id, 'creative_strategy')}
+                        />
                         <TextArea label="Detailed Creative Direction" placeholder="Specific direction for copy, tone, and structure…" value={activeStep.detailed_creative_direction} onChange={setStep(activeStep.id, 'detailed_creative_direction')} />
 
-                        {/* Personalization Strategy — segmentations */}
+                        {/* Personalization Strategy */}
                         <div className="form-subheader">Personalization Strategy</div>
-                        <p style={{ margin: '-8px 0 8px', fontSize: '0.85rem', color: 'var(--beige-text-sec)' }}>Segmentations being isolated in this step</p>
+                        <p className="form-description">Define the variables you want to personalise and how to tailor the creative for each.</p>
                         {activeStep.segmentations.map((seg, si) => (
-                          <div key={si} className="segment-row">
-                            <span className="segment-pill">Seg {si + 1}</span>
-                            <input
-                              type="text"
-                              className="form-input"
-                              placeholder={`Segmentation ${si + 1}`}
-                              value={seg}
-                              onChange={(e) => updateSegmentation(activeStep.id, si, e.target.value)}
-                            />
-                            {activeStep.segmentations.length > 1 && (
-                              <button className="seg-remove-btn" onClick={() => removeSegmentation(activeStep.id, si)} title="Remove">
-                                &times;
-                              </button>
-                            )}
+                          <div key={si} className="seg-pair">
+                            <div className="seg-pair-header">
+                              <span className="segment-pill">Seg {si + 1}</span>
+                              {activeStep.segmentations.length > 1 && (
+                                <button className="seg-remove-btn" onClick={() => removeSegmentation(activeStep.id, si)} title="Remove">&times;</button>
+                              )}
+                            </div>
+                            <div className="form-row-2">
+                              <div className="form-group">
+                                <label className="form-label">Segmentation Variable</label>
+                                <p className="form-description-sm">The variable for which you want to personalise</p>
+                                <input type="text" className="form-input" placeholder="e.g., Product, Persona, Plan"
+                                  value={seg.variable} onChange={e => updateSeg(activeStep.id, si, 'variable', e.target.value)} />
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label">Creative Specificity</label>
+                                <p className="form-description-sm">How you want to tailor the creative based on the variable</p>
+                                <input type="text" className="form-input" placeholder="e.g., use the persona to define the features a user would want to renew for"
+                                  value={seg.creative_specificity} onChange={e => updateSeg(activeStep.id, si, 'creative_specificity', e.target.value)} />
+                              </div>
+                            </div>
                           </div>
                         ))}
                         <button className="btn-add-seg" onClick={() => addSegmentation(activeStep.id)}>
@@ -480,21 +550,14 @@ export default function ProposalForm({
                         </div>
 
                         <div className="form-subheader">Rules</div>
-                        <p style={{ margin: '-8px 0 8px', fontSize: '0.85rem', color: 'var(--beige-text-sec)' }}>Additional rules on top of existing hard rules</p>
+                        <p className="form-description">Additional rules on top of existing hard rules</p>
                         {activeStep.rules.map((rule, ri) => (
                           <div key={ri} className="segment-row">
                             <span className="segment-pill" style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}>Rule {ri + 1}</span>
-                            <input
-                              type="text"
-                              className="form-input"
-                              placeholder={`e.g. No discount language, Max 2 CTAs…`}
-                              value={rule}
-                              onChange={(e) => updateRule(activeStep.id, ri, e.target.value)}
-                            />
+                            <input type="text" className="form-input" placeholder="e.g. No discount language, Max 2 CTAs…"
+                              value={rule} onChange={e => updateRule(activeStep.id, ri, e.target.value)} />
                             {activeStep.rules.length > 1 && (
-                              <button className="seg-remove-btn" onClick={() => removeRule(activeStep.id, ri)} title="Remove">
-                                &times;
-                              </button>
+                              <button className="seg-remove-btn" onClick={() => removeRule(activeStep.id, ri)} title="Remove">&times;</button>
                             )}
                           </div>
                         ))}
