@@ -207,7 +207,7 @@ function generateMarkdown(data: Record<string, string>, steps: Step[]): string {
 
     const ce = step.creative_entries
     if (ce.subject || ce.preview || ce.h1 || ce.body || ce.cta) {
-      md += `**Creative Entries:**\n`
+      md += `**Detailed Creative Direction (individual fields optional):**\n`
       if (ce.subject) md += `- **Subject Direction:** ${ce.subject}\n`
       if (ce.preview) md += `- **Preview Direction:** ${ce.preview}\n`
       if (ce.h1) md += `- **H1 Direction:** ${ce.h1}\n`
@@ -499,7 +499,6 @@ export default function ProposalForm({
                         <div className="form-subheader">Strategic Direction</div>
                         <TextArea
                           label="Creative Strategy"
-                          description="Create urgency around trial ending while providing clear next-step options (auto-renew full-size, sizing guidance, product exploration). Use social proof through testimonials. Introduce complementary products as additional purchase opportunities."
                           placeholder="e.g., Trial Conversion with Social Proof & Product Expansion"
                           value={activeStep.creative_strategy}
                           onChange={setStep(activeStep.id, 'creative_strategy')}
@@ -517,19 +516,17 @@ export default function ProposalForm({
                                 <button className="seg-remove-btn" onClick={() => removeSegmentation(activeStep.id, si)} title="Remove">&times;</button>
                               )}
                             </div>
-                            <div className="form-row-2">
-                              <div className="form-group">
-                                <label className="form-label">Segmentation Variable</label>
-                                <p className="form-description-sm">The variable for which you want to personalise</p>
-                                <input type="text" className="form-input" placeholder="e.g., Product, Persona, Plan"
-                                  value={seg.variable} onChange={e => updateSeg(activeStep.id, si, 'variable', e.target.value)} />
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">Creative Specificity</label>
-                                <p className="form-description-sm">How you want to tailor the creative based on the variable</p>
-                                <input type="text" className="form-input" placeholder="e.g., use the persona to define the features a user would want to renew for"
-                                  value={seg.creative_specificity} onChange={e => updateSeg(activeStep.id, si, 'creative_specificity', e.target.value)} />
-                              </div>
+                            <div className="form-group">
+                              <label className="form-label">Segmentation Variable</label>
+                              <p className="form-description-sm">The variable for which you want to personalise</p>
+                              <input type="text" className="form-input" placeholder="e.g., JTBD Persona"
+                                value={seg.variable} onChange={e => updateSeg(activeStep.id, si, 'variable', e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Personalization Angle</label>
+                              <p className="form-description-sm">How you want to tailor the creative based on the variable</p>
+                              <textarea className="form-input" rows={3} placeholder="e.g., Write two sentences about each JTBD's what's hard in a way that feels like someone who genuinely empathizes with them"
+                                value={seg.creative_specificity} onChange={e => updateSeg(activeStep.id, si, 'creative_specificity', e.target.value)} />
                             </div>
                           </div>
                         ))}
@@ -537,7 +534,7 @@ export default function ProposalForm({
                           <PlusIcon /> Add Segmentation
                         </button>
 
-                        <div className="form-subheader">Creative Entries</div>
+                        <div className="form-subheader">Detailed Creative Direction (individual fields optional)</div>
                         <div className="form-row-2">
                           <Field label="Subject Direction" placeholder="Direction for subject line, e.g. urgency-driven, question-based…" value={activeStep.creative_entries.subject} onChange={setStepCreative(activeStep.id, 'subject')} />
                           <Field label="Preview Direction" placeholder="Direction for preview text, e.g. complement subject, tease content…" value={activeStep.creative_entries.preview} onChange={setStepCreative(activeStep.id, 'preview')} />
