@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { slugify } from '@/lib/utils'
 
@@ -281,6 +281,8 @@ export default function ProposalForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => setData((prev) => ({ ...prev, [key]: e.target.value })), [])
 
+  const [viewAllModal, setViewAllModal] = useState<{ stepId: string; segIndex: number } | null>(null)
+
   const setStep = useCallback((id: string, key: keyof Step) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => setSteps((prev) => prev.map((s) => s.id === id ? { ...s, [key]: e.target.value } : s)), [])
@@ -522,11 +524,19 @@ export default function ProposalForm({
                               <input type="text" className="form-input" placeholder="e.g., JTBD Persona"
                                 value={seg.variable} onChange={e => updateSeg(activeStep.id, si, 'variable', e.target.value)} />
                             </div>
-                            <div className="form-group">
+                            <div className="form-group" style={{ marginTop: 12 }}>
                               <label className="form-label">Personalization Angle</label>
                               <p className="form-description-sm">How you want to tailor the creative based on the variable</p>
-                              <textarea className="form-input" rows={3} placeholder="e.g., Write two sentences about each JTBD's what's hard in a way that feels like someone who genuinely empathizes with them"
-                                value={seg.creative_specificity} onChange={e => updateSeg(activeStep.id, si, 'creative_specificity', e.target.value)} />
+                              <div style={{ position: 'relative' }}>
+                                <textarea className="form-textarea" rows={5} placeholder="e.g., Write two sentences about each JTBD's what's hard in a way that feels like someone who genuinely empathizes with them"
+                                  value={seg.creative_specificity} onChange={e => updateSeg(activeStep.id, si, 'creative_specificity', e.target.value)} />
+                                {seg.creative_specificity && (
+                                  <button type="button" onClick={() => setViewAllModal({ stepId: activeStep.id, segIndex: si })}
+                                    style={{ position: 'absolute', bottom: 8, right: 8, background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 6, padding: '3px 10px', fontSize: '0.68rem', color: '#666', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                                    View all
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -535,10 +545,8 @@ export default function ProposalForm({
                         </button>
 
                         <div className="form-subheader">Detailed Creative Direction (individual fields optional)</div>
-                        <div className="form-row-2">
-                          <Field label="Subject Direction" placeholder="Direction for subject line, e.g. urgency-driven, question-based…" value={activeStep.creative_entries.subject} onChange={setStepCreative(activeStep.id, 'subject')} />
-                          <Field label="Preview Direction" placeholder="Direction for preview text, e.g. complement subject, tease content…" value={activeStep.creative_entries.preview} onChange={setStepCreative(activeStep.id, 'preview')} />
-                        </div>
+                        <TextArea label="Subject Direction" placeholder="Direction for subject line, e.g. urgency-driven, question-based…" value={activeStep.creative_entries.subject} onChange={setStepCreative(activeStep.id, 'subject')} />
+                        <Field label="Preview Direction" placeholder="Direction for preview text, e.g. complement subject, tease content…" value={activeStep.creative_entries.preview} onChange={setStepCreative(activeStep.id, 'preview')} />
                         <Field label="H1 Direction" placeholder="Direction for headline, e.g. benefit-led, persona-specific…" value={activeStep.creative_entries.h1} onChange={setStepCreative(activeStep.id, 'h1')} />
                         <TextArea label="Body" placeholder="Email body content direction" value={activeStep.creative_entries.body} onChange={setStepCreative(activeStep.id, 'body')} />
                         <div className="form-row-2">
@@ -578,6 +586,37 @@ export default function ProposalForm({
 
         </div>
       </div>
+
+      {/* View All Modal */}
+      {viewAllModal && (() => {
+        const step = steps.find(s => s.id === viewAllModal.stepId)
+        const seg = step?.segmentations[viewAllModal.segIndex]
+        if (!step || !seg) return null
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setViewAllModal(null)}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
+            <div style={{ position: 'relative', background: '#fff', borderRadius: 12, padding: 24, maxWidth: 640, width: '90%', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Personalization Angle</h3>
+                  {seg.variable && <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#888' }}>Variable: {seg.variable}</p>}
+                </div>
+                <button onClick={() => setViewAllModal(null)}
+                  style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#999', lineHeight: 1 }}>&times;</button>
+              </div>
+              <textarea
+                className="form-textarea"
+                rows={12}
+                value={seg.creative_specificity}
+                onChange={e => updateSeg(viewAllModal.stepId, viewAllModal.segIndex, 'creative_specificity', e.target.value)}
+                style={{ width: '100%', fontSize: '0.85rem', lineHeight: 1.7 }}
+              />
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
